@@ -47,4 +47,16 @@ public class HappyPathTest {
         String expected = "Ваша заявка успешно отправлена! Наш менеджер свяжется с вами в ближайшее время.";
         assertEquals(expected, message);
     }
+
+    @Test
+    public void shouldSendFormSuccessfullyWithComplexSurname() {
+        driver.get("http://localhost:9999");
+        driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys("Михаил Салтыков-Щедрин");
+        driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys("+79032233586");
+        driver.findElement(By.cssSelector("[data-test-id='agreement']")).click();
+        driver.findElement(By.cssSelector("[type='button']")).click();
+        String message = driver.findElement(By.cssSelector("[data-test-id='order-success']")).getText().trim();
+        String expected = "Ваша заявка успешно отправлена! Наш менеджер свяжется с вами в ближайшее время.";
+        assertEquals(expected, message);
+    }
 }

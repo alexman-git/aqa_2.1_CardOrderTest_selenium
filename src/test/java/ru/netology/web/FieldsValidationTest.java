@@ -12,6 +12,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class FieldsValidationTest {
@@ -41,88 +42,105 @@ public class FieldsValidationTest {
 
     // 1) тестируем валидацию поля "Фамилия и имя",
     // в поле "Мобильный телефон" - всегда валидное значение, чек-бокс на согласие всегда нажат
-    // Для критериев валидации использовались ТОЛЬКО требования в ДЗ,
-    // хотя в приложении-заглушке валидация данного поля настроена для "галочки" (очень плохо).
-    // Например, считаются валидными: имена и фамилии в одну букву с пробелом, наличие дефиса в начале и/или в конце имени,
-    // нет минимального и максимального предела на ввод, имя фамилия "--  --" также валидное и т.д.
-    @ParameterizedTest
-    @CsvSource(value = {"emptyName,''",
-            "oneLetterNameLatin,q",
-            "nameWithDigits,Павел0",
-            "nameWithSpecialSymbols,Павел_Павел_@#$"})
-    void shouldNotValidateInputName(String testcase, String name) {
+    @Test
+    void shouldNotValidateEmptyName() {
         driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys("+79991234567");
         driver.findElement(By.cssSelector("[data-test-id='agreement']")).click();
-        driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys(name);
+        driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys("");
         driver.findElement(By.cssSelector("[type='button']")).click();
-        assertNotNull(driver.findElement(By.cssSelector("[data-test-id='name'].input_invalid .input__sub")));
+        String message = driver.findElement(By.cssSelector("[data-test-id='name'].input_invalid .input__sub")).getText().trim();
+        String expected = "Поле обязательно для заполнения";
+        assertEquals(expected, message);
     }
 
     @ParameterizedTest
     @CsvSource(value = {"oneLetterNameCyrillic(minBoundaryTestInField),а",
-            "oneLetterNameSurnameWithSpaceCyrillic(minBoundaryTestInField),а д",
-            "extremelyLongNameCyrillic(maxBoundaryTestInField),Аввропроролртоптиполрплрплрпрплрплрплрплрпрпрпппрплоооооооооооооо",
-            "nameWithOneHyphenCyrillic,Анна-Мария Ремарк",
-            "nameWithTwoHyphensCyrillic,Анна-Мария-Ремарк Иванова",
-            "twoLetterNameCyrillic,Ян",
-            "regularNameSurnameWithSpaceCyrillic,Иван Петров",
-            "regularNameSecondNameSurnameWithSpaceCyrillic,Иван Николаевич Петров",
-            "nameWithUpperCaseErrorsCyrillic,иВаН петров",
-            "nameWithTwoHyphensInRowCyrillic,Анна--Мария",
-            "nameWithHyphenAtTheBeginning,-Анна",
-            "nameWithHyphenAtTheEnd,Анна-",
-            "nameWithOnlySpacesAndHyphens,--  --"})
-    void shouldValidateInputName(String testcase, String name) {
+            "oneLetterNameSurnameWithSpaceCyrillic(minBoundaryTestInField2),а д",
+            "extremelyLongNameCyrillic(maxBoundaryTestInField),Аввропроролртоптиполрплрплрпрпл Рплрплрплрпрпрпппрплоооооооооооооо",
+            "oneLetterNameSurnameLatin,q a",
+            "nameWithDigits,Павел Иванов0",
+            "nameWithSpecialSymbols,Павел Иванов_@#$",
+            "nameWithTwoHyphensInRowCyrillic,Анна--Мария Петрова",
+            "nameWithHyphenAtTheBeginning,-Анна Петрова",
+            "nameWithHyphenAtTheEnd,Анна- Петрова-",
+            "nameWithOnlySpacesAndHyphensWithoutLetters,--  --",
+            "nameSurnameWithUpperOrLowerCaseErrorsCyrillic,иВаН пЕтров"})
+    void shouldNotValidateImproperInputName(String testcase, String name) {
         driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys("+79991234567");
         driver.findElement(By.cssSelector("[data-test-id='agreement']")).click();
         driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys(name);
         driver.findElement(By.cssSelector("[type='button']")).click();
-        assertNotNull(driver.findElement(By.cssSelector("[data-test-id='order-success']")));
+        String message = driver.findElement(By.cssSelector("[data-test-id='name'].input_invalid .input__sub")).getText().trim();
+        String expected = "Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы.";
+        assertEquals(expected, message);
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {
+            "nameWithOneHyphenCyrillic,Анна-Мария Ремарк",
+            "nameWithTwoHyphensCyrillic,Анна-Мария-Ремарк Иванова",
+            "twoLetterNameAndSurnameCyrillic,Ян Ян",
+            "regularNameSurnameWithSpaceCyrillic,Иван Петров",
+            "regularNameSecondNameSurnameWithSpaceCyrillic,Иван Николаевич Петров",
+            "nameSurnameAllUpperCaseCyrillic,ИВАН ПЕТРОВ",
+            "nameSurnameAllLowerCaseCyrillic,иван петров"})
+    void shouldValidateProperInputName(String testcase, String name) {
+        driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys("+79991234567");
+        driver.findElement(By.cssSelector("[data-test-id='agreement']")).click();
+        driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys(name);
+        driver.findElement(By.cssSelector("[type='button']")).click();
+        String message = driver.findElement(By.cssSelector("[data-test-id='order-success']")).getText().trim();
+        String expected = "Ваша заявка успешно отправлена! Наш менеджер свяжется с вами в ближайшее время.";
+        assertEquals(expected, message);
     }
 
     // 2) тестируем валидацию поля "Мобильный телефон",
     // в поле "Фамилия и имя" - всегда валидное значение, чек-бокс на согласие всегда нажат.
-    // Для критериев валидации также использовались ТОЛЬКО требования, обозначенные в ДЗ.
+    @Test
+    void shouldNotValidateEmptyPhoneNumber() {
+        driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys("Иван Иванов");
+        driver.findElement(By.cssSelector("[data-test-id='agreement']")).click();
+        driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys("");
+        driver.findElement(By.cssSelector("[type='button']")).click();
+        String message = driver.findElement(By.cssSelector("[data-test-id='phone'].input_invalid .input__sub")).getText().trim();
+        String expected = "Поле обязательно для заполнения";
+        assertEquals(expected, message);
+    }
+
     @ParameterizedTest
-    @CsvSource(value = {"emptyPhoneNumber,''",
-            "phoneNumberWithNonDigitSymbols,+7898989898q",
+    @CsvSource(value = {"phoneNumberElevenDigitsWithLetter,+78989898989q",
             "tooShortNumber,+7",
             "numberOfTenDigits,+7898989899",
-            "numberOfTwelveDigits(tooLongNumber),+789898989999",
-            "numberWithoutPlus,78989898998",
+            "numberOfTwelveDigits(tooLongNumber or MaxBoundaryTestInField),+789898989999",
+            "numberElevenDigitsWithoutPlus,78989898998",
             "numberWithRestrictedSymbols,-78989898999",
+            "numberWithRestrictedSymbols2,-78989898_@#$",
             "elevenDigitsPlusInTheMiddle,789898+98998",
-            "elevenDigitsPlusAtTheEnd,78989898998+"})
-    void shouldNotValidateInputPhoneNumber(String testcase, String phone) {
+            "elevenDigitsPlusAtTheEnd,78989898998+",
+            "nonExistentNumberElevenDigitsAllNullsPlusAtFirst,+00000000000"})
+    void shouldNotValidateImproperPhoneNumber(String testcase, String phone) {
         driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys("Иван Иванов");
         driver.findElement(By.cssSelector("[data-test-id='agreement']")).click();
         driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys(phone);
         driver.findElement(By.cssSelector("[type='button']")).click();
-        assertNotNull(driver.findElement(By.cssSelector("[data-test-id='phone'].input_invalid .input__sub")));
+        String message = driver.findElement(By.cssSelector("[data-test-id='phone'].input_invalid .input__sub")).getText().trim();
+        String expected = "Телефон указан неверно. Должно быть 11 цифр, например, +79012345678.";
+        assertEquals(expected, message);
     }
 
-    @ParameterizedTest
-    @CsvSource(value = {"regularNumberElevenDigitsPlusAtFirst,+71234567891",
-            "nonRegularNumberElevenDigitsAllNullsPlusAtFirst,+00000000000"})
-    void shouldValidateInputPhoneNumber(String testcase, String phone) {
-        driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys("Иван Иванов");
-        driver.findElement(By.cssSelector("[data-test-id='agreement']")).click();
-        driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys(phone);
-        driver.findElement(By.cssSelector("[type='button']")).click();
-        assertNotNull(driver.findElement(By.cssSelector("[data-test-id='order-success']")));
-    }
-
-    // 3) тестируем валидацию чек-бокса "Согласие с условиями обработки персональных данных".
-    // В полях "Фамилия и имя", "Мобильный телефон" - валидные значения.
     @Test
-    void shouldValidateFormIfCheckBoxClicked() {
+    void shouldValidateProperPhoneNumber() {
         driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys("Иван Иванов");
-        driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys("+75656565656");
         driver.findElement(By.cssSelector("[data-test-id='agreement']")).click();
+        driver.findElement(By.cssSelector("[data-test-id='phone'] input")).sendKeys("+71234567891");
         driver.findElement(By.cssSelector("[type='button']")).click();
-        assertNotNull(driver.findElement(By.cssSelector("[data-test-id='order-success']")));
+        String message = driver.findElement(By.cssSelector("[data-test-id='order-success']")).getText().trim();
+        String expected = "Ваша заявка успешно отправлена! Наш менеджер свяжется с вами в ближайшее время.";
+        assertEquals(expected, message);
     }
 
+    // 3) тестируем валидацию нажатия чек-бокса "Согласие с условиями обработки персональных данных".
+    // В полях "Фамилия и имя", "Мобильный телефон" - валидные значения.
     @Test
     void shouldNotValidateFormIfCheckBoxNotClicked() {
         driver.findElement(By.cssSelector("[data-test-id='name'] input")).sendKeys("Иван Иванов");
